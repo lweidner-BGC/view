@@ -1,0 +1,18 @@
+# Cesium is not needed for this viewer and contains embedded credentials
+potree/libs/Cesium/
+
+# Large optional Potree libraries we don't use
+potree/libs/copc/
+potree/libs/zstd-codec/
+potree/libs/geopackage/
+potree/libs/shapefile/
+potree/libs/sql.js/
+potree/libs/MeshLine/
+
+# Local data / converted clouds
+/data/
+*.las
+*.laz
+
+# OS
+.DS_Store

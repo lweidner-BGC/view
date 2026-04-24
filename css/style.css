@@ -1,0 +1,269 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #1a1a2e;
+  color: #cccccc;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* ── Header ── */
+#app-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 42px;
+  background: #0f0f1f;
+  border-bottom: 1px solid #2a2a4a;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  z-index: 1000;
+  gap: 10px;
+}
+#app-logo {
+  width: 22px; height: 22px;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+#app-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e0e0e0;
+  letter-spacing: 0.02em;
+  flex: 1;
+}
+#btn-share {
+  background: #1e5f74;
+  border: 1px solid #2a7a94;
+  color: #c8eaf5;
+  padding: 5px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+#btn-share:hover { background: #257a96; }
+#share-toast {
+  position: fixed;
+  top: 52px; right: 16px;
+  background: #1a3a4a;
+  border: 1px solid #2a7a94;
+  color: #c8eaf5;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 2000;
+}
+#share-toast.visible { opacity: 1; }
+
+/* ── Sidebar ── */
+#app-sidebar {
+  position: fixed;
+  left: 0; top: 42px; bottom: 26px;
+  width: 280px;
+  background: #141424;
+  border-right: 1px solid #1e1e38;
+  overflow-y: auto;
+  z-index: 500;
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a4a transparent;
+}
+#app-sidebar::-webkit-scrollbar { width: 5px; }
+#app-sidebar::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 3px; }
+
+.sidebar-section {
+  padding: 12px 14px;
+  border-bottom: 1px solid #1e1e38;
+}
+.sidebar-section:last-child { border-bottom: none; }
+
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5a6a7a;
+  margin-bottom: 8px;
+}
+
+/* Cloud toggle row */
+.cloud-toggle-row {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.cloud-toggle-btn {
+  flex: 1;
+  padding: 6px 4px;
+  background: #1e1e38;
+  border: 1px solid #2a2a4a;
+  color: #8a9aaa;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.15s;
+  text-align: center;
+}
+.cloud-toggle-btn:hover { background: #252545; color: #ccc; }
+.cloud-toggle-btn.active {
+  background: #1a4a5e;
+  border-color: #2a7a94;
+  color: #c8eaf5;
+}
+.cloud-toggle-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.cloud-url {
+  font-size: 10px;
+  color: #4a5a6a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+.cloud-url.loaded { color: #4a8a6a; }
+.cloud-url.loading { color: #8a8a3a; }
+
+/* Form elements */
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.field-row label {
+  font-size: 11px;
+  color: #7a8a9a;
+  width: 36px;
+  flex-shrink: 0;
+}
+
+select {
+  width: 100%;
+  background: #1e1e38;
+  border: 1px solid #2a2a4a;
+  color: #cccccc;
+  padding: 5px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  margin-bottom: 6px;
+}
+select:focus { border-color: #2a7a94; }
+select option { background: #1a1a2e; }
+
+.range-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+.range-row label {
+  font-size: 10px;
+  color: #5a6a7a;
+  width: 28px;
+  flex-shrink: 0;
+  text-align: right;
+}
+.range-row input[type="range"] {
+  flex: 1;
+  accent-color: #2a7a94;
+  cursor: pointer;
+}
+.range-row input[type="number"] {
+  width: 56px;
+  background: #1e1e38;
+  border: 1px solid #2a2a4a;
+  color: #ccc;
+  padding: 3px 5px;
+  border-radius: 3px;
+  font-size: 11px;
+  outline: none;
+}
+.range-row input[type="number"]:focus { border-color: #2a7a94; }
+
+.btn-small {
+  width: 100%;
+  padding: 5px;
+  background: #1e2e3e;
+  border: 1px solid #2a3a4a;
+  color: #8abacc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  margin-top: 4px;
+  transition: background 0.15s;
+}
+.btn-small:hover { background: #253545; }
+
+/* Point budget */
+.budget-display {
+  text-align: center;
+  font-size: 11px;
+  color: #5a8a6a;
+  margin-top: 3px;
+}
+
+/* ── Potree container ── */
+.potree_container {
+  position: fixed !important;
+  left: 280px !important;
+  right: 70px !important;
+  top: 42px !important;
+  bottom: 26px !important;
+}
+#potree_render_area {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Color Bar ── */
+#colorbar-container {
+  position: fixed;
+  right: 0; top: 42px; bottom: 26px;
+  width: 70px;
+  background: #141424;
+  border-left: 1px solid #1e1e38;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+  overflow: hidden;
+}
+#colorbar-container svg {
+  width: 70px;
+  height: 100%;
+}
+
+/* ── Status bar ── */
+#app-status {
+  position: fixed;
+  bottom: 0; left: 280px; right: 70px;
+  height: 26px;
+  background: #0f0f1f;
+  border-top: 1px solid #1e1e38;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 20px;
+  z-index: 1000;
+}
+#app-status span {
+  font-size: 11px;
+  color: #4a5a6a;
+}
+#app-status .val { color: #6a9a8a; }
+
+/* Potree sidebar suppression */
+#potree_sidebar_container { display: none !important; }

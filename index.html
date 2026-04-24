@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Point Cloud Viewer</title>
+
+  <!-- Potree styles -->
+  <link rel="stylesheet" href="potree/build/potree/potree.css">
+  <link rel="stylesheet" href="potree/libs/jquery-ui/jquery-ui.min.css">
+  <link rel="stylesheet" href="potree/libs/spectrum/spectrum.css">
+  <link rel="stylesheet" href="potree/libs/jstree/themes/mixed/style.css">
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <div id="app-header">
+    <svg id="app-logo" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="11" cy="11" r="2.5" fill="#2a9dc0"/>
+      <circle cx="4"  cy="7"  r="1.5" fill="#4a6a9a" opacity="0.8"/>
+      <circle cx="18" cy="7"  r="1.5" fill="#4a6a9a" opacity="0.8"/>
+      <circle cx="4"  cy="15" r="1.5" fill="#4a6a9a" opacity="0.7"/>
+      <circle cx="18" cy="15" r="1.5" fill="#4a6a9a" opacity="0.7"/>
+      <circle cx="11" cy="3"  r="1.2" fill="#6a8aba" opacity="0.7"/>
+      <circle cx="11" cy="19" r="1.2" fill="#6a8aba" opacity="0.7"/>
+      <circle cx="7"  cy="18" r="1"   fill="#3a5a8a" opacity="0.5"/>
+      <circle cx="15" cy="18" r="1"   fill="#3a5a8a" opacity="0.5"/>
+      <circle cx="7"  cy="4"  r="1"   fill="#3a5a8a" opacity="0.5"/>
+      <circle cx="15" cy="4"  r="1"   fill="#3a5a8a" opacity="0.5"/>
+    </svg>
+    <span id="app-title">Point Cloud Viewer</span>
+    <button id="btn-share">Share</button>
+  </div>
+
+  <!-- Share toast -->
+  <div id="share-toast">Link copied to clipboard</div>
+
+  <!-- Sidebar (populated by ui.js) -->
+  <div id="app-sidebar"></div>
+
+  <!-- Potree render area -->
+  <div class="potree_container">
+    <div id="potree_render_area"></div>
+  </div>
+
+  <!-- Color bar (populated by colorbar.js) -->
+  <div id="colorbar-container"></div>
+
+  <!-- Status bar -->
+  <div id="app-status">
+    <span id="status-points">Points: <span class="val">—</span></span>
+    <span id="status-fps">FPS: <span class="val">—</span></span>
+  </div>
+
+  <!-- Hidden Potree sidebar stub (prevents CSS layout glitches) -->
+  <div id="potree_sidebar_container" style="display:none; width:0;"></div>
+
+  <!-- Potree dependencies — load order matters -->
+  <script src="potree/libs/jquery/jquery-3.1.1.min.js"></script>
+  <script src="potree/libs/spectrum/spectrum.js"></script>
+  <script src="potree/libs/jquery-ui/jquery-ui.min.js"></script>
+  <script src="potree/libs/other/BinaryHeap.js"></script>
+  <script src="potree/libs/tween/tween.min.js"></script>
+  <script src="potree/libs/d3/d3.js"></script>
+  <script src="potree/libs/proj4/proj4.js"></script>
+  <script src="potree/libs/openlayers3/ol.js"></script>
+  <script src="potree/libs/i18next/i18next.js"></script>
+  <script src="potree/libs/jstree/jstree.js"></script>
+  <script src="potree/build/potree/potree.js"></script>
+  <script src="potree/libs/plasio/js/laslaz.js"></script>
+
+  <!-- App module -->
+  <script type="module">
+    import { initApp } from './js/app.js';
+
+    window.addEventListener('load', () => {
+      initApp().catch(err => {
+        console.error('Viewer init failed:', err);
+        document.getElementById('potree_render_area').innerHTML =
+          `<div style="color:#c55;padding:40px;font-family:monospace">
+             <b>Viewer failed to initialize.</b><br><br>${err.message || err}
+           </div>`;
+      });
+    });
+  </script>
+</body>
+</html>
