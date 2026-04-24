@@ -57605,6 +57605,8 @@ uniform float uExtraOffset;
 uniform vec2 uFilterExtraClipRange;
 uniform float uFilterExtraEnabled;
 uniform float uFilterExtraNaN;
+uniform vec2 uLODRange;
+uniform float uLODEnabled;
 
 uniform vec3 uShadowColor;
 
@@ -58390,6 +58392,12 @@ void main() {
 
 	// COLOR
 	vColor = getColor();
+	if(uLODEnabled > 0.0){
+		float w_lod = (aExtra + uExtraOffset) * uExtraScale;
+		if(w_lod >= uLODRange.x && w_lod <= uLODRange.y){
+			vColor = vec3(1.0, 1.0, 1.0);
+		}
+	}
 	// vColor = vec3(1.0, 0.0, 0.0);
 
 	//gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
@@ -59192,6 +59200,8 @@ void main() {
 				uFilterExtraClipRange:			{ type: "2fv", value: [-1e10, 1e10]},
 				uFilterExtraEnabled:			{ type: "f",   value: 0.0 },
 				uFilterExtraNaN:				{ type: "f",   value: 0.0 },
+				uLODRange:					{ type: "2fv", value: [0.0, 0.0]},
+				uLODEnabled:				{ type: "f",   value: 0.0 },
 				matcapTextureUniform: 	{ type: "t", value: this.matcapTexture },
 				backfaceCulling: { type: "b", value: false },
 			};
@@ -63283,6 +63293,8 @@ void main() {
 						shader.setUniform2f("uFilterExtraClipRange", material.uniforms.uFilterExtraClipRange.value);
 						shader.setUniform1f("uFilterExtraEnabled", material.uniforms.uFilterExtraEnabled.value);
 						shader.setUniform1f("uFilterExtraNaN",     material.uniforms.uFilterExtraNaN.value);
+						shader.setUniform2f("uLODRange",    material.uniforms.uLODRange.value);
+						shader.setUniform1f("uLODEnabled",  material.uniforms.uLODEnabled.value);
 					}
 				}
 

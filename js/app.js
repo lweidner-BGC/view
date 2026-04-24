@@ -19,6 +19,10 @@ const state = {
   fmax: 0.5,
   hideNaN: false,
 
+  // Limit of detection — points within ±lod of zero are colored white
+  lodEnabled: false,
+  lod: 0.05,
+
   // Runtime refs (not serialized to URL)
   clouds: { 1: null, 2: null },
   viewer: null,
@@ -34,12 +38,13 @@ export async function initApp() {
   UI.buildSidebar(state, {
     onFieldChange:      applyVisualState,
     onCmapChange:       applyVisualState,
-    onRangeChange:      () => { applyVisualState(); applyFilter(); },
+    onRangeChange:      () => { applyVisualState(); applyFilter(); applyLOD(); },
     onVisibilityChange: applyVisibility,
     onAutoRange:        autoRange,
     onPointSize:        applyPointSize,
     onFilterChange:     applyFilter,
     onNaNChange:        applyFilter,
+    onLODChange:        applyLOD,
   });
   UI.updateToggleButtons(state.active);
 
@@ -50,6 +55,7 @@ export async function initApp() {
   applyVisualState();
   applyVisibility();
   applyFilter();
+  applyLOD();
 
   document.getElementById('btn-share').addEventListener('click', shareURL);
   startStatusLoop();
@@ -176,6 +182,19 @@ function applyFilter() {
   }
 }
 
+function applyLOD() {
+  for (const slot of [1, 2]) {
+    const pc = state.clouds[slot];
+    if (!pc) continue;
+    const mat = pc.material;
+    const dv = state.vmax - state.vmin || 1;
+    const wLODMin = (-state.lod - state.vmin) / dv;
+    const wLODMax = ( state.lod - state.vmin) / dv;
+    mat.uniforms.uLODRange.value   = [wLODMin, wLODMax];
+    mat.uniforms.uLODEnabled.value = state.lodEnabled ? 1.0 : 0.0;
+  }
+}
+
 // Auto-detect range from data attribute metadata
 function autoRange() {
   const pc = state.clouds[1] || state.clouds[2];
@@ -198,8 +217,10 @@ function autoRange() {
   state.fmax = state.vmax;
   UI.setRangeInputs(state.vmin, state.vmax);
   UI.setFilterSlider(state.fmin, state.fmax);
+  UI.setLODSliderMax(state.vmin, state.vmax);
   applyVisualState();
   applyFilter();
+  applyLOD();
 }
 
 // ── Camera ─────────────────────────────────────────────────────────────────

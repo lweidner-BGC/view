@@ -82,6 +82,20 @@ export function buildSidebar(state, callbacks) {
       </div>
     </div>
 
+    <!-- LIMIT OF DETECTION -->
+    <div class="sidebar-section">
+      <div class="section-label">Limit of Detection</div>
+      <label class="check-label" style="margin-bottom:6px">
+        <input type="checkbox" id="lod-enabled" ${state.lodEnabled ? 'checked' : ''}>
+        Color ±LOD points white
+      </label>
+      <div class="range-row">
+        <span style="font-size:10px;color:#5a6a7a;white-space:nowrap">± </span>
+        <input type="range" id="lod-slider" min="0" max="1" step="0.001" value="${state.lod}" style="flex:1">
+        <input type="number" id="lod-input" class="range-num-input" value="${fmt(state.lod)}" step="any" style="width:60px">
+      </div>
+    </div>
+
     <!-- POINT SIZE -->
     <div class="sidebar-section">
       <div class="section-label">Point Size</div>
@@ -167,6 +181,29 @@ export function buildSidebar(state, callbacks) {
     callbacks.onNaNChange();
   });
 
+  // LOD enable checkbox
+  document.getElementById('lod-enabled').addEventListener('change', (e) => {
+    state.lodEnabled = e.target.checked;
+    callbacks.onLODChange();
+  });
+
+  // LOD slider
+  document.getElementById('lod-slider').addEventListener('input', (e) => {
+    const v = parseFloat(e.target.value);
+    state.lod = v;
+    document.getElementById('lod-input').value = fmt(v);
+    callbacks.onLODChange();
+  });
+
+  // LOD number input
+  document.getElementById('lod-input').addEventListener('change', (e) => {
+    const v = parseFloat(e.target.value);
+    if (isNaN(v) || v < 0) return;
+    state.lod = v;
+    document.getElementById('lod-slider').value = Math.min(v, parseFloat(document.getElementById('lod-slider').max));
+    callbacks.onLODChange();
+  });
+
   // Filter range number inputs
   document.getElementById('fmin-input').addEventListener('change', (e) => {
     const v = parseFloat(e.target.value);
@@ -247,6 +284,13 @@ export function setFilterSlider(fmin, fmax) {
   $(sliderEl).slider('values', [fmin, fmax]);
   document.getElementById('fmin-input').value = fmt(fmin);
   document.getElementById('fmax-input').value = fmt(fmax);
+}
+
+export function setLODSliderMax(vmin, vmax) {
+  const sliderEl = document.getElementById('lod-slider');
+  if (!sliderEl) return;
+  const halfRange = Math.abs(vmax - vmin) / 2;
+  sliderEl.max = halfRange.toFixed(4);
 }
 
 export function setRangeInputs(vmin, vmax) {
