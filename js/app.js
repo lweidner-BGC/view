@@ -167,13 +167,13 @@ function applyFilter() {
 
     if (state.filterEnabled) {
       mat.uniforms.uFilterExtraClipRange.value = [state.fmin, state.fmax];
-      mat.setDefine('clip_extra_enabled', true);
+      mat.setDefine('clip_extra_enabled', '#define clip_extra_enabled');
     } else {
       mat.removeDefine('clip_extra_enabled');
     }
 
     if (state.hideNaN) {
-      mat.setDefine('clip_extra_nan', true);
+      mat.setDefine('clip_extra_nan', '#define clip_extra_nan');
     } else {
       mat.removeDefine('clip_extra_nan');
     }
