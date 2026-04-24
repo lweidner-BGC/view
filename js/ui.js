@@ -236,6 +236,19 @@ export function setCloudStatus(slot, url, status) {
   }
 }
 
+export function setFilterSlider(fmin, fmax) {
+  const sliderEl = document.getElementById('filter-slider');
+  if (!sliderEl || !window.$) return;
+  const pad = Math.max(Math.abs(fmax - fmin) * 0.5, 0.5);
+  const sliderMin = Math.floor((fmin - pad) * 1000) / 1000;
+  const sliderMax = Math.ceil((fmax + pad) * 1000) / 1000;
+  $(sliderEl).slider('option', 'min', sliderMin);
+  $(sliderEl).slider('option', 'max', sliderMax);
+  $(sliderEl).slider('values', [fmin, fmax]);
+  document.getElementById('fmin-input').value = fmt(fmin);
+  document.getElementById('fmax-input').value = fmt(fmax);
+}
+
 export function setRangeInputs(vmin, vmax) {
   // Reinitialise the dual-handle slider with new bounds and values.
   const sliderEl = document.getElementById('range-slider');

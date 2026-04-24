@@ -13,10 +13,10 @@ const state = {
   ptsize: 1.5,   // point size (material.size)
   cam:    null,  // base64-encoded {pos:[x,y,z], yaw, pitch, radius}
 
-  // Value filter
+  // Value filter — fmin/fmax default to match the color range and are synced after auto-range
   filterEnabled: false,
-  fmin: -1,
-  fmax: 1,
+  fmin: -0.5,
+  fmax: 0.5,
   hideNaN: false,
 
   // Runtime refs (not serialized to URL)
@@ -193,8 +193,13 @@ function autoRange() {
     console.warn('No range metadata found for field:', state.field);
     return;
   }
+  // Sync filter range to new data range so the slider is meaningful
+  state.fmin = state.vmin;
+  state.fmax = state.vmax;
   UI.setRangeInputs(state.vmin, state.vmax);
+  UI.setFilterSlider(state.fmin, state.fmax);
   applyVisualState();
+  applyFilter();
 }
 
 // ── Camera ─────────────────────────────────────────────────────────────────
@@ -235,6 +240,9 @@ function parseURL(s) {
     s.vmin = parseFloat(p.get('vmin'));
     s.vmax = parseFloat(p.get('vmax'));
     s._hasURLRange = true;
+    // Default filter range to color range so the slider is in the right ballpark
+    if (!p.has('fmin')) s.fmin = s.vmin;
+    if (!p.has('fmax')) s.fmax = s.vmax;
   }
   s.active  = p.get('active')  || s.active;
   s.ptsize  = parseFloat(p.get('ptsize') ?? s.ptsize);
