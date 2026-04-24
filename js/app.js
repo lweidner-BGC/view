@@ -10,6 +10,7 @@ const state = {
   vmin:   -0.5,
   vmax:   0.5,
   active: '1',   // '1', '2', or 'both'
+  ptsize: 1.5,   // point size (material.size)
   cam:    null,  // base64-encoded {pos:[x,y,z], yaw, pitch, radius}
 
   // Runtime refs (not serialized to URL)
@@ -24,11 +25,12 @@ export async function initApp() {
   await initViewer();
 
   UI.buildSidebar(state, {
-    onFieldChange:     applyVisualState,
-    onCmapChange:      applyVisualState,
-    onRangeChange:     applyVisualState,
+    onFieldChange:      applyVisualState,
+    onCmapChange:       applyVisualState,
+    onRangeChange:      applyVisualState,
     onVisibilityChange: applyVisibility,
-    onAutoRange:       autoRange,
+    onAutoRange:        autoRange,
+    onPointSize:        applyPointSize,
   });
   UI.updateToggleButtons(state.active);
 
@@ -116,18 +118,22 @@ function applyField(pc) {
     : Potree.Gradients.SPECTRAL;
   mat.gradient = gradient;
 
-  // Normalize custom scalar fields into [0,1] for the shader.
-  // Potree's built-in elevation/intensity have their own range handling;
-  // custom extra attributes use uExtraOffset/uExtraScale uniforms.
-  const range = state.vmax - state.vmin || 1;
-  if (mat.uniforms?.uExtraOffset) {
-    mat.uniforms.uExtraOffset.value = -state.vmin;
-    mat.uniforms.uExtraScale.value  = 1.0 / range;
-  }
-
-  // Built-in elevation range
-  if (state.field === 'elevation' || state.field === 'height') {
+  // Potree's renderer reads material.getRange(name) each frame and computes
+  // uExtraOffset/uExtraScale from it — setting those uniforms directly has no
+  // effect because the renderer overwrites them. Use setRange() instead.
+  if (state.field === 'intensity') {
+    mat.intensityRange = [state.vmin, state.vmax];
+  } else if (state.field === 'elevation' || state.field === 'height') {
     mat.elevationRange = [state.vmin, state.vmax];
+  } else {
+    mat.setRange(state.field, [state.vmin, state.vmax]);
+  }
+}
+
+function applyPointSize() {
+  for (const slot of [1, 2]) {
+    const pc = state.clouds[slot];
+    if (pc) pc.material.size = state.ptsize;
   }
 }
 
@@ -195,8 +201,9 @@ function parseURL(s) {
   s.cmap   = p.get('cmap')   || s.cmap;
   s.vmin   = parseFloat(p.get('vmin') ?? s.vmin);
   s.vmax   = parseFloat(p.get('vmax') ?? s.vmax);
-  s.active = p.get('active') || s.active;
-  s.cam    = p.get('cam')    || null;
+  s.active  = p.get('active')  || s.active;
+  s.ptsize  = parseFloat(p.get('ptsize') ?? s.ptsize);
+  s.cam     = p.get('cam')     || null;
 }
 
 function buildURL() {
@@ -207,8 +214,9 @@ function buildURL() {
   p.set('cmap',   state.cmap);
   p.set('vmin',   state.vmin.toString());
   p.set('vmax',   state.vmax.toString());
-  p.set('active', state.active);
-  p.set('cam',    buildCamParam());
+  p.set('active',  state.active);
+  p.set('ptsize',  state.ptsize.toString());
+  p.set('cam',     buildCamParam());
   return `${location.origin}${location.pathname}?${p.toString()}`;
 }
 

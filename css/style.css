@@ -192,6 +192,36 @@ select option { background: #1a1a2e; }
 }
 .range-row input[type="number"]:focus { border-color: #2a7a94; }
 
+/* Dual-handle range readout */
+.range-readout {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6a9a8a;
+  margin-bottom: 6px;
+  font-family: monospace;
+}
+
+/* jQuery UI slider dark theme */
+#range-slider {
+  margin: 4px 6px 12px 6px;
+  height: 5px;
+  border-radius: 3px;
+}
+#range-slider.ui-slider { background: #2a2a4a; border: none; }
+#range-slider .ui-slider-range { background: #1e5f74; border-radius: 3px; }
+#range-slider .ui-slider-handle {
+  width: 14px; height: 14px;
+  top: -5px;
+  border-radius: 50%;
+  background: #2a9dc0;
+  border: 2px solid #1a6a8a;
+  cursor: pointer;
+  outline: none;
+}
+#range-slider .ui-slider-handle:focus,
+#range-slider .ui-slider-handle:hover { background: #3abde0; }
+
 .btn-small {
   width: 100%;
   padding: 5px;

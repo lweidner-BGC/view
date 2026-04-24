@@ -52,22 +52,26 @@ export function buildSidebar(state, callbacks) {
     <!-- COLOR RANGE -->
     <div class="sidebar-section">
       <div class="section-label">Color Range</div>
-      <div class="range-row">
-        <label>Max</label>
-        <input type="range" id="vmax-slider" min="-100" max="100" step="0.01">
-        <input type="number" id="vmax-num" step="0.1">
+      <div class="range-readout">
+        <span id="vmin-label">${state.vmin}</span>
+        <span id="vmax-label">${state.vmax}</span>
       </div>
-      <div class="range-row">
-        <label>Min</label>
-        <input type="range" id="vmin-slider" min="-100" max="100" step="0.01">
-        <input type="number" id="vmin-num" step="0.1">
-      </div>
+      <div id="range-slider"></div>
       <button class="btn-small" id="btn-auto-range">Auto range from data</button>
+    </div>
+
+    <!-- POINT SIZE -->
+    <div class="sidebar-section">
+      <div class="section-label">Point Size</div>
+      <div class="range-row">
+        <input type="range" id="ptsize-slider" min="0.5" max="8" step="0.5" value="${state.ptsize}" style="flex:1">
+        <span id="ptsize-label" style="width:28px;text-align:right;font-size:11px;color:#6a9a8a">${state.ptsize}</span>
+      </div>
     </div>
 
     <!-- POINT BUDGET -->
     <div class="sidebar-section">
-      <div class="section-label">Point Budget</div>
+      <div class="section-label">Point Budget (LOD)</div>
       <input type="range" id="budget-slider" min="500000" max="15000000" step="500000" style="width:100%">
       <div class="budget-display" id="budget-display">5.0M points</div>
     </div>
@@ -77,8 +81,8 @@ export function buildSidebar(state, callbacks) {
   populateSelect('field-select', DEFAULT_FIELDS, state.field);
   populateSelect('cmap-select', COLORMAPS, state.cmap);
 
-  // Set initial range values
-  setRangeInputs(state.vmin, state.vmax);
+  // Dual-handle range slider via jQuery UI (already loaded by Potree)
+  initRangeSlider(state, callbacks);
 
   // Budget slider
   document.getElementById('budget-slider').value = 5000000;
@@ -106,13 +110,17 @@ export function buildSidebar(state, callbacks) {
     callbacks.onCmapChange();
   });
 
-  // vmin/vmax sliders and number inputs (sync both directions)
-  wireRangeControl('vmin', (v) => { state.vmin = v; callbacks.onRangeChange(); });
-  wireRangeControl('vmax', (v) => { state.vmax = v; callbacks.onRangeChange(); });
-
   // Auto range
   document.getElementById('btn-auto-range').addEventListener('click', () => {
     callbacks.onAutoRange();
+  });
+
+  // Point size
+  document.getElementById('ptsize-slider').addEventListener('input', (e) => {
+    const v = parseFloat(e.target.value);
+    state.ptsize = v;
+    document.getElementById('ptsize-label').textContent = v;
+    callbacks.onPointSize();
   });
 
   // Point budget
@@ -161,22 +169,43 @@ export function setCloudStatus(slot, url, status) {
 }
 
 export function setRangeInputs(vmin, vmax) {
-  const range = Math.max(Math.abs(vmin), Math.abs(vmax), 1) * 1.5;
+  // Reinitialise the dual-handle slider with new bounds and values.
+  const sliderEl = document.getElementById('range-slider');
+  if (!sliderEl || !window.$) return;
+  const pad = Math.max(Math.abs(vmax - vmin) * 0.5, 0.5);
+  const sliderMin = Math.floor((vmin - pad) * 100) / 100;
+  const sliderMax = Math.ceil((vmax + pad) * 100) / 100;
+  $(sliderEl).slider('option', 'min', sliderMin);
+  $(sliderEl).slider('option', 'max', sliderMax);
+  $(sliderEl).slider('values', [vmin, vmax]);
+  document.getElementById('vmin-label').textContent = fmt(vmin);
+  document.getElementById('vmax-label').textContent = fmt(vmax);
+}
 
-  for (const id of ['vmin-slider','vmax-slider']) {
-    const el = document.getElementById(id);
-    if (el) { el.min = -range; el.max = range; }
-  }
+function initRangeSlider(state, callbacks) {
+  const sliderEl = document.getElementById('range-slider');
+  if (!sliderEl || !window.$) return;
 
-  const vminSlider = document.getElementById('vmin-slider');
-  const vmaxSlider = document.getElementById('vmax-slider');
-  const vminNum    = document.getElementById('vmin-num');
-  const vmaxNum    = document.getElementById('vmax-num');
+  const { vmin, vmax } = state;
+  const pad = Math.max(Math.abs(vmax - vmin) * 0.5, 0.5);
+  const sliderMin = Math.floor((vmin - pad) * 100) / 100;
+  const sliderMax = Math.ceil((vmax + pad) * 100) / 100;
 
-  if (vminSlider) vminSlider.value = vmin;
-  if (vmaxSlider) vmaxSlider.value = vmax;
-  if (vminNum)    vminNum.value    = vmin;
-  if (vmaxNum)    vmaxNum.value    = vmax;
+  $(sliderEl).slider({
+    range: true,
+    min: sliderMin,
+    max: sliderMax,
+    step: 0.001,
+    values: [vmin, vmax],
+    slide: (event, ui) => {
+      const [a, b] = ui.values;
+      state.vmin = a;
+      state.vmax = b;
+      document.getElementById('vmin-label').textContent = fmt(a);
+      document.getElementById('vmax-label').textContent = fmt(b);
+      callbacks.onRangeChange();
+    },
+  });
 }
 
 export function updateToggleButtons(active) {
@@ -199,19 +228,8 @@ function populateSelect(id, items, selectedValue) {
   }
 }
 
-function wireRangeControl(key, onChange) {
-  const slider = document.getElementById(`${key}-slider`);
-  const num    = document.getElementById(`${key}-num`);
-  if (!slider || !num) return;
-
-  slider.addEventListener('input', () => {
-    const v = parseFloat(slider.value);
-    num.value = v;
-    onChange(v);
-  });
-  num.addEventListener('change', () => {
-    const v = parseFloat(num.value);
-    slider.value = v;
-    onChange(v);
-  });
+function fmt(v) {
+  if (Math.abs(v) >= 100) return v.toFixed(1);
+  if (Math.abs(v) >= 10)  return v.toFixed(2);
+  return v.toFixed(3);
 }
