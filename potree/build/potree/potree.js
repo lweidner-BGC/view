@@ -57602,6 +57602,9 @@ uniform vec2 uExtraNormalizedRange;
 uniform vec2 uExtraRange;
 uniform float uExtraScale;
 uniform float uExtraOffset;
+uniform vec2 uFilterExtraClipRange;
+uniform float uFilterExtraEnabled;
+uniform float uFilterExtraNaN;
 
 uniform vec3 uShadowColor;
 
@@ -58342,12 +58345,26 @@ void doClipping(){
 			gl_Position = vec4(100.0, 100.0, 100.0, 1.0);
 		}
 	}
+
+	if(uFilterExtraEnabled > 0.0){
+		float w_raw = (aExtra + uExtraOffset) * uExtraScale;
+		if(w_raw < uFilterExtraClipRange.x || w_raw > uFilterExtraClipRange.y){
+			gl_Position = vec4(100.0, 100.0, 100.0, 0.0);
+			return;
+		}
+	}
+	if(uFilterExtraNaN > 0.0){
+		if(aExtra != aExtra){
+			gl_Position = vec4(100.0, 100.0, 100.0, 0.0);
+			return;
+		}
+	}
 }
 
 
 
-// 
-// ##     ##    ###    #### ##    ## 
+//
+// ##     ##    ###    #### ##    ##
 // ###   ###   ## ##    ##  ###   ## 
 // #### ####  ##   ##   ##  ####  ## 
 // ## ### ## ##     ##  ##  ## ## ## 

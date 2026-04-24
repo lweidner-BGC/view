@@ -14,5 +14,8 @@ potree/libs/MeshLine/
 *.las
 *.laz
 
+# Upload script contains credentials — keep local only
+tools/upload_r2.py
+
 # OS
 .DS_Store
