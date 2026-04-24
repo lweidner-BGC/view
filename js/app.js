@@ -34,7 +34,7 @@ export async function initApp() {
   UI.buildSidebar(state, {
     onFieldChange:      applyVisualState,
     onCmapChange:       applyVisualState,
-    onRangeChange:      applyVisualState,
+    onRangeChange:      () => { applyVisualState(); applyFilter(); },
     onVisibilityChange: applyVisibility,
     onAutoRange:        autoRange,
     onPointSize:        applyPointSize,
@@ -166,7 +166,13 @@ function applyFilter() {
     const mat = pc.material;
 
     if (state.filterEnabled) {
-      mat.uniforms.uFilterExtraClipRange.value = [state.fmin, state.fmax];
+      // Filter uses the same normalized w-space the shader computes for color mapping.
+      // w = (aExtra + uExtraOffset) * uExtraScale maps physical values to ~[0,1]
+      // where w=0 ↔ vmin and w=1 ↔ vmax. Convert physical fmin/fmax to that space.
+      const dv = state.vmax - state.vmin || 1;
+      const wFmin = (state.fmin - state.vmin) / dv;
+      const wFmax = (state.fmax - state.vmin) / dv;
+      mat.uniforms.uFilterExtraClipRange.value = [wFmin, wFmax];
       mat.setDefine('clip_extra_enabled', '#define clip_extra_enabled');
     } else {
       mat.removeDefine('clip_extra_enabled');

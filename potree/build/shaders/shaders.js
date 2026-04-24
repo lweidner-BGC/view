@@ -805,9 +805,9 @@ void doClipping(){
 	#endif
 
 	#if defined(clip_extra_enabled)
-	{ // extra attribute value filter
-		vec2 range = uFilterExtraClipRange;
-		if(aExtra < range.x || aExtra > range.y){
+	{ // extra attribute value filter in normalized w space
+		float w_raw = (aExtra + uExtraOffset) * uExtraScale;
+		if(w_raw < uFilterExtraClipRange.x || w_raw > uFilterExtraClipRange.y){
 			gl_Position = vec4(100.0, 100.0, 100.0, 0.0);
 			return;
 		}
@@ -815,7 +815,7 @@ void doClipping(){
 	#endif
 
 	#if defined(clip_extra_nan)
-	{ // NaN filter for extra attribute
+	{ // NaN filter: aExtra is NaN when the attribute has no value
 		if(aExtra != aExtra){
 			gl_Position = vec4(100.0, 100.0, 100.0, 0.0);
 			return;
