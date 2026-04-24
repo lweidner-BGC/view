@@ -20,7 +20,9 @@ export function update(state) {
   // We reverse (t → 1-t) so that vmax is at the top of the SVG.
   let stopsSVG = '';
   if (gradientDef && gradientDef.length) {
-    for (const [t, color] of gradientDef) {
+    // Process in reverse so offsets are ascending (SVG spec requires it).
+    // (1-t) maps t=1→0% (top/vmax) and t=0→100% (bottom/vmin).
+    for (const [t, color] of [...gradientDef].reverse()) {
       const pct = Math.round((1 - t) * 100);
       const hex = '#' + color.getHexString();
       stopsSVG += `<stop offset="${pct}%" stop-color="${hex}"/>`;
