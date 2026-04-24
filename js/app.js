@@ -5,10 +5,10 @@ import * as UI       from './ui.js';
 const state = {
   src:    null,  // primary cloud metadata.json URL
   src2:   null,  // secondary cloud metadata.json URL (optional)
-  field:  'M3C2 Distance',  // active scalar attribute — edit default here
+  field:  'M3C2 distance',  // active scalar attribute — edit default here
   cmap:   'SPECTRAL',
-  vmin:   -1,
-  vmax:   1,
+  vmin:   -0.5,
+  vmax:   0.5,
   active: '1',   // '1', '2', or 'both'
   cam:    null,  // base64-encoded {pos:[x,y,z], yaw, pitch, radius}
 

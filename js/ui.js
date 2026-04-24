@@ -5,7 +5,7 @@
 // ── Edit this list to add common field names you expect in your data ──
 const DEFAULT_FIELDS = [
   { value: 'rgba',           label: 'RGB Color' },
-  { value: 'M3C2 Distance',  label: 'M3C2 Distance' },
+  { value: 'M3C2 distance',  label: 'M3C2 distance' },
   { value: 'elevation',      label: 'Elevation' },
   { value: 'intensity',      label: 'Intensity' },
 ];
