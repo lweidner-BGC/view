@@ -59173,6 +59173,8 @@ void main() {
 				uFilterGPSTimeClipRange:		{ type: "fv", value: [0, 7]},
 				uFilterPointSourceIDClipRange:		{ type: "fv", value: [0, 65535]},
 				uFilterExtraClipRange:			{ type: "2fv", value: [-1e10, 1e10]},
+				uFilterExtraEnabled:			{ type: "f",   value: 0.0 },
+				uFilterExtraNaN:				{ type: "f",   value: 0.0 },
 				matcapTextureUniform: 	{ type: "t", value: this.matcapTexture },
 				backfaceCulling: { type: "b", value: false },
 			};
@@ -63262,6 +63264,8 @@ void main() {
 
 					if(material.uniforms.uFilterExtraClipRange){
 						shader.setUniform2f("uFilterExtraClipRange", material.uniforms.uFilterExtraClipRange.value);
+						shader.setUniform1f("uFilterExtraEnabled", material.uniforms.uFilterExtraEnabled.value);
+						shader.setUniform1f("uFilterExtraNaN",     material.uniforms.uFilterExtraNaN.value);
 					}
 				}
 

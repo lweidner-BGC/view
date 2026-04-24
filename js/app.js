@@ -165,24 +165,14 @@ function applyFilter() {
     if (!pc) continue;
     const mat = pc.material;
 
-    if (state.filterEnabled) {
-      // Filter uses the same normalized w-space the shader computes for color mapping.
-      // w = (aExtra + uExtraOffset) * uExtraScale maps physical values to ~[0,1]
-      // where w=0 ↔ vmin and w=1 ↔ vmax. Convert physical fmin/fmax to that space.
-      const dv = state.vmax - state.vmin || 1;
-      const wFmin = (state.fmin - state.vmin) / dv;
-      const wFmax = (state.fmax - state.vmin) / dv;
-      mat.uniforms.uFilterExtraClipRange.value = [wFmin, wFmax];
-      mat.setDefine('clip_extra_enabled', '#define clip_extra_enabled');
-    } else {
-      mat.removeDefine('clip_extra_enabled');
-    }
+    // Convert physical fmin/fmax to normalized w-space (w=0 at vmin, w=1 at vmax).
+    const dv = state.vmax - state.vmin || 1;
+    const wFmin = (state.fmin - state.vmin) / dv;
+    const wFmax = (state.fmax - state.vmin) / dv;
 
-    if (state.hideNaN) {
-      mat.setDefine('clip_extra_nan', '#define clip_extra_nan');
-    } else {
-      mat.removeDefine('clip_extra_nan');
-    }
+    mat.uniforms.uFilterExtraClipRange.value = [wFmin, wFmax];
+    mat.uniforms.uFilterExtraEnabled.value   = state.filterEnabled ? 1.0 : 0.0;
+    mat.uniforms.uFilterExtraNaN.value       = state.hideNaN       ? 1.0 : 0.0;
   }
 }
 
