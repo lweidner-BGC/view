@@ -63253,12 +63253,16 @@ void main() {
 					let uFilterReturnNumberRange = material.uniforms.uFilterReturnNumberRange.value;
 					let uFilterNumberOfReturnsRange = material.uniforms.uFilterNumberOfReturnsRange.value;
 					let uFilterPointSourceIDClipRange = material.uniforms.uFilterPointSourceIDClipRange.value;
-					
-					
-					
+
+
+
 					shader.setUniform2f("uFilterReturnNumberRange", uFilterReturnNumberRange);
 					shader.setUniform2f("uFilterNumberOfReturnsRange", uFilterNumberOfReturnsRange);
 					shader.setUniform2f("uFilterPointSourceIDClipRange", uFilterPointSourceIDClipRange);
+
+					if(material.uniforms.uFilterExtraClipRange){
+						shader.setUniform2f("uFilterExtraClipRange", material.uniforms.uFilterExtraClipRange.value);
+					}
 				}
 
 				let webglBuffer = null;
