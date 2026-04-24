@@ -53,11 +53,33 @@ export function buildSidebar(state, callbacks) {
     <div class="sidebar-section">
       <div class="section-label">Color Range</div>
       <div class="range-readout">
-        <span id="vmin-label">${state.vmin}</span>
-        <span id="vmax-label">${state.vmax}</span>
+        <input type="number" id="vmin-input" class="range-num-input" value="${fmt(state.vmin)}" step="any">
+        <input type="number" id="vmax-input" class="range-num-input" value="${fmt(state.vmax)}" step="any">
       </div>
       <div id="range-slider"></div>
       <button class="btn-small" id="btn-auto-range">Auto range from data</button>
+    </div>
+
+    <!-- VALUE FILTER -->
+    <div class="sidebar-section">
+      <div class="section-label">Value Filter</div>
+      <div class="filter-checks">
+        <label class="check-label">
+          <input type="checkbox" id="filter-enabled" ${state.filterEnabled ? 'checked' : ''}>
+          Clip range
+        </label>
+        <label class="check-label">
+          <input type="checkbox" id="filter-nan" ${state.hideNaN ? 'checked' : ''}>
+          Hide NaN
+        </label>
+      </div>
+      <div id="filter-slider-wrap" class="${state.filterEnabled ? '' : 'filter-disabled'}">
+        <div class="range-readout" style="margin-top:6px">
+          <input type="number" id="fmin-input" class="range-num-input" value="${fmt(state.fmin)}" step="any">
+          <input type="number" id="fmax-input" class="range-num-input" value="${fmt(state.fmax)}" step="any">
+        </div>
+        <div id="filter-slider"></div>
+      </div>
     </div>
 
     <!-- POINT SIZE -->
@@ -81,8 +103,9 @@ export function buildSidebar(state, callbacks) {
   populateSelect('field-select', DEFAULT_FIELDS, state.field);
   populateSelect('cmap-select', COLORMAPS, state.cmap);
 
-  // Dual-handle range slider via jQuery UI (already loaded by Potree)
+  // Dual-handle range sliders via jQuery UI (already loaded by Potree)
   initRangeSlider(state, callbacks);
+  initFilterSlider(state, callbacks);
 
   // Budget slider
   document.getElementById('budget-slider').value = 5000000;
@@ -113,6 +136,51 @@ export function buildSidebar(state, callbacks) {
   // Auto range
   document.getElementById('btn-auto-range').addEventListener('click', () => {
     callbacks.onAutoRange();
+  });
+
+  // Color range number inputs
+  document.getElementById('vmin-input').addEventListener('change', (e) => {
+    const v = parseFloat(e.target.value);
+    if (isNaN(v)) return;
+    state.vmin = v;
+    syncRangeSliderValues(state.vmin, state.vmax);
+    callbacks.onRangeChange();
+  });
+  document.getElementById('vmax-input').addEventListener('change', (e) => {
+    const v = parseFloat(e.target.value);
+    if (isNaN(v)) return;
+    state.vmax = v;
+    syncRangeSliderValues(state.vmin, state.vmax);
+    callbacks.onRangeChange();
+  });
+
+  // Filter enable checkbox
+  document.getElementById('filter-enabled').addEventListener('change', (e) => {
+    state.filterEnabled = e.target.checked;
+    document.getElementById('filter-slider-wrap').classList.toggle('filter-disabled', !state.filterEnabled);
+    callbacks.onFilterChange();
+  });
+
+  // NaN checkbox
+  document.getElementById('filter-nan').addEventListener('change', (e) => {
+    state.hideNaN = e.target.checked;
+    callbacks.onNaNChange();
+  });
+
+  // Filter range number inputs
+  document.getElementById('fmin-input').addEventListener('change', (e) => {
+    const v = parseFloat(e.target.value);
+    if (isNaN(v)) return;
+    state.fmin = v;
+    syncFilterSliderValues(state.fmin, state.fmax);
+    callbacks.onFilterChange();
+  });
+  document.getElementById('fmax-input').addEventListener('change', (e) => {
+    const v = parseFloat(e.target.value);
+    if (isNaN(v)) return;
+    state.fmax = v;
+    syncFilterSliderValues(state.fmin, state.fmax);
+    callbacks.onFilterChange();
   });
 
   // Point size
@@ -178,8 +246,20 @@ export function setRangeInputs(vmin, vmax) {
   $(sliderEl).slider('option', 'min', sliderMin);
   $(sliderEl).slider('option', 'max', sliderMax);
   $(sliderEl).slider('values', [vmin, vmax]);
-  document.getElementById('vmin-label').textContent = fmt(vmin);
-  document.getElementById('vmax-label').textContent = fmt(vmax);
+  document.getElementById('vmin-input').value = fmt(vmin);
+  document.getElementById('vmax-input').value = fmt(vmax);
+}
+
+function syncRangeSliderValues(vmin, vmax) {
+  const sliderEl = document.getElementById('range-slider');
+  if (!sliderEl || !window.$) return;
+  $(sliderEl).slider('values', [vmin, vmax]);
+}
+
+function syncFilterSliderValues(fmin, fmax) {
+  const sliderEl = document.getElementById('filter-slider');
+  if (!sliderEl || !window.$) return;
+  $(sliderEl).slider('values', [fmin, fmax]);
 }
 
 function initRangeSlider(state, callbacks) {
@@ -201,9 +281,35 @@ function initRangeSlider(state, callbacks) {
       const [a, b] = ui.values;
       state.vmin = a;
       state.vmax = b;
-      document.getElementById('vmin-label').textContent = fmt(a);
-      document.getElementById('vmax-label').textContent = fmt(b);
+      document.getElementById('vmin-input').value = fmt(a);
+      document.getElementById('vmax-input').value = fmt(b);
       callbacks.onRangeChange();
+    },
+  });
+}
+
+function initFilterSlider(state, callbacks) {
+  const sliderEl = document.getElementById('filter-slider');
+  if (!sliderEl || !window.$) return;
+
+  const { fmin, fmax } = state;
+  const pad = Math.max(Math.abs(fmax - fmin) * 0.5, 0.5);
+  const sliderMin = Math.floor((fmin - pad) * 100) / 100;
+  const sliderMax = Math.ceil((fmax + pad) * 100) / 100;
+
+  $(sliderEl).slider({
+    range: true,
+    min: sliderMin,
+    max: sliderMax,
+    step: 0.001,
+    values: [fmin, fmax],
+    slide: (event, ui) => {
+      const [a, b] = ui.values;
+      state.fmin = a;
+      state.fmax = b;
+      document.getElementById('fmin-input').value = fmt(a);
+      document.getElementById('fmax-input').value = fmt(b);
+      callbacks.onFilterChange();
     },
   });
 }

@@ -13,10 +13,17 @@ const state = {
   ptsize: 1.5,   // point size (material.size)
   cam:    null,  // base64-encoded {pos:[x,y,z], yaw, pitch, radius}
 
+  // Value filter
+  filterEnabled: false,
+  fmin: -1,
+  fmax: 1,
+  hideNaN: false,
+
   // Runtime refs (not serialized to URL)
   clouds: { 1: null, 2: null },
   viewer: null,
   attributes: [],
+  _hasURLRange: false,  // true if vmin/vmax came from URL params
 };
 
 // ── Entry point ────────────────────────────────────────────────────────────
@@ -31,6 +38,8 @@ export async function initApp() {
     onVisibilityChange: applyVisibility,
     onAutoRange:        autoRange,
     onPointSize:        applyPointSize,
+    onFilterChange:     applyFilter,
+    onNaNChange:        applyFilter,
   });
   UI.updateToggleButtons(state.active);
 
@@ -40,6 +49,7 @@ export async function initApp() {
   restoreCamera();
   applyVisualState();
   applyVisibility();
+  applyFilter();
 
   document.getElementById('btn-share').addEventListener('click', shareURL);
   startStatusLoop();
@@ -98,6 +108,11 @@ async function loadCloud(slot, url) {
   }
 
   applyField(pc);
+
+  // Auto-range on first load if no explicit range was in URL
+  if (slot === 1 && !state._hasURLRange) {
+    autoRange();
+  }
 }
 
 // ── Visual state ───────────────────────────────────────────────────────────
@@ -142,6 +157,27 @@ function applyVisibility() {
   const c2 = state.clouds[2];
   if (c1) c1.visible = state.active === '1' || state.active === 'both';
   if (c2) c2.visible = state.active === '2' || state.active === 'both';
+}
+
+function applyFilter() {
+  for (const slot of [1, 2]) {
+    const pc = state.clouds[slot];
+    if (!pc) continue;
+    const mat = pc.material;
+
+    if (state.filterEnabled) {
+      mat.uniforms.uFilterExtraClipRange.value = [state.fmin, state.fmax];
+      mat.setDefine('clip_extra_enabled', true);
+    } else {
+      mat.removeDefine('clip_extra_enabled');
+    }
+
+    if (state.hideNaN) {
+      mat.setDefine('clip_extra_nan', true);
+    } else {
+      mat.removeDefine('clip_extra_nan');
+    }
+  }
 }
 
 // Auto-detect range from data attribute metadata
@@ -199,11 +235,18 @@ function parseURL(s) {
   s.src2   = p.get('src2')   || null;
   s.field  = p.get('field')  || s.field;
   s.cmap   = p.get('cmap')   || s.cmap;
-  s.vmin   = parseFloat(p.get('vmin') ?? s.vmin);
-  s.vmax   = parseFloat(p.get('vmax') ?? s.vmax);
+  if (p.has('vmin') && p.has('vmax')) {
+    s.vmin = parseFloat(p.get('vmin'));
+    s.vmax = parseFloat(p.get('vmax'));
+    s._hasURLRange = true;
+  }
   s.active  = p.get('active')  || s.active;
   s.ptsize  = parseFloat(p.get('ptsize') ?? s.ptsize);
   s.cam     = p.get('cam')     || null;
+  if (p.get('filter') === '1') s.filterEnabled = true;
+  if (p.has('fmin')) s.fmin = parseFloat(p.get('fmin'));
+  if (p.has('fmax')) s.fmax = parseFloat(p.get('fmax'));
+  if (p.get('hidenan') === '1') s.hideNaN = true;
 }
 
 function buildURL() {
@@ -217,6 +260,12 @@ function buildURL() {
   p.set('active',  state.active);
   p.set('ptsize',  state.ptsize.toString());
   p.set('cam',     buildCamParam());
+  if (state.filterEnabled) {
+    p.set('filter', '1');
+    p.set('fmin',   state.fmin.toString());
+    p.set('fmax',   state.fmax.toString());
+  }
+  if (state.hideNaN) p.set('hidenan', '1');
   return `${location.origin}${location.pathname}?${p.toString()}`;
 }
 

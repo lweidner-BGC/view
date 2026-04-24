@@ -86,6 +86,7 @@ uniform vec2 uFilterReturnNumberRange;
 uniform vec2 uFilterNumberOfReturnsRange;
 uniform vec2 uFilterPointSourceIDClipRange;
 uniform vec2 uFilterGPSTimeClipRange;
+uniform vec2 uFilterExtraClipRange;
 uniform float uGpsScale;
 uniform float uGpsOffset;
 
@@ -797,7 +798,26 @@ void doClipping(){
 		vec2 range = uFilterPointSourceIDClipRange;
 		if(pointSourceID < range.x || pointSourceID > range.y){
 			gl_Position = vec4(100.0, 100.0, 100.0, 0.0);
-			
+
+			return;
+		}
+	}
+	#endif
+
+	#if defined(clip_extra_enabled)
+	{ // extra attribute value filter
+		vec2 range = uFilterExtraClipRange;
+		if(aExtra < range.x || aExtra > range.y){
+			gl_Position = vec4(100.0, 100.0, 100.0, 0.0);
+			return;
+		}
+	}
+	#endif
+
+	#if defined(clip_extra_nan)
+	{ // NaN filter for extra attribute
+		if(aExtra != aExtra){
+			gl_Position = vec4(100.0, 100.0, 100.0, 0.0);
 			return;
 		}
 	}

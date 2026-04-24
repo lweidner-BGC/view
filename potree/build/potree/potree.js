@@ -59172,6 +59172,7 @@ void main() {
 				uFilterNumberOfReturnsRange:	{ type: "fv", value: [0, 7]},
 				uFilterGPSTimeClipRange:		{ type: "fv", value: [0, 7]},
 				uFilterPointSourceIDClipRange:		{ type: "fv", value: [0, 65535]},
+				uFilterExtraClipRange:			{ type: "2fv", value: [-1e10, 1e10]},
 				matcapTextureUniform: 	{ type: "t", value: this.matcapTexture },
 				backfaceCulling: { type: "b", value: false },
 			};

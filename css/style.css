@@ -192,25 +192,60 @@ select option { background: #1a1a2e; }
 }
 .range-row input[type="number"]:focus { border-color: #2a7a94; }
 
-/* Dual-handle range readout */
+/* Dual-handle range readout with editable inputs */
 .range-readout {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
-  color: #6a9a8a;
+  gap: 6px;
   margin-bottom: 6px;
+}
+.range-num-input {
+  width: 72px;
+  background: #1e1e38;
+  border: 1px solid #2a2a4a;
+  color: #6a9a8a;
+  padding: 3px 5px;
+  border-radius: 3px;
+  font-size: 11px;
   font-family: monospace;
+  outline: none;
+  text-align: center;
+}
+.range-num-input:focus { border-color: #2a7a94; color: #9acaba; }
+
+/* Value filter section */
+.filter-checks {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.check-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #8a9aaa;
+  cursor: pointer;
+  user-select: none;
+}
+.check-label input[type="checkbox"] {
+  accent-color: #2a7a94;
+  cursor: pointer;
+}
+.filter-disabled {
+  opacity: 0.35;
+  pointer-events: none;
 }
 
 /* jQuery UI slider dark theme */
-#range-slider {
+#range-slider, #filter-slider {
   margin: 4px 6px 12px 6px;
   height: 5px;
   border-radius: 3px;
 }
-#range-slider.ui-slider { background: #2a2a4a; border: none; }
-#range-slider .ui-slider-range { background: #1e5f74; border-radius: 3px; }
-#range-slider .ui-slider-handle {
+#range-slider.ui-slider, #filter-slider.ui-slider { background: #2a2a4a; border: none; }
+#range-slider .ui-slider-range, #filter-slider .ui-slider-range { background: #1e5f74; border-radius: 3px; }
+#range-slider .ui-slider-handle, #filter-slider .ui-slider-handle {
   width: 14px; height: 14px;
   top: -5px;
   border-radius: 50%;
@@ -220,7 +255,9 @@ select option { background: #1a1a2e; }
   outline: none;
 }
 #range-slider .ui-slider-handle:focus,
-#range-slider .ui-slider-handle:hover { background: #3abde0; }
+#range-slider .ui-slider-handle:hover,
+#filter-slider .ui-slider-handle:focus,
+#filter-slider .ui-slider-handle:hover { background: #3abde0; }
 
 .btn-small {
   width: 100%;
