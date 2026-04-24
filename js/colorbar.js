@@ -5,7 +5,7 @@ export function update(state) {
   const container = document.getElementById('colorbar-container');
   if (!container) return;
 
-  const { cmap, vmin, vmax, field } = state;
+  const { cmap, vmin, vmax, field, lodEnabled, lod } = state;
   const gradientDef = (window.Potree && Potree.Gradients && Potree.Gradients[cmap])
     ? Potree.Gradients[cmap]
     : null;
@@ -15,20 +15,25 @@ export function update(state) {
   const barTop = 30, barBot = H - 30;
   const barH = barBot - barTop;
 
+  const dv = vmax - vmin || 1;
+
+  // Map a physical value to a y-pixel on the bar (vmax→barTop, vmin→barBot)
+  function physToY(v) {
+    const frac = (v - vmin) / dv;
+    return barTop + (1 - frac) * barH;
+  }
+
   // Build gradient stops from Potree gradient array.
-  // Potree stores gradients as arrays of [t, THREE.Color] where t ∈ [0,1].
-  // We reverse (t → 1-t) so that vmax is at the top of the SVG.
+  // Process in reverse so offsets are ascending (SVG spec requires it).
+  // (1-t) maps t=1→0% (top/vmax) and t=0→100% (bottom/vmin).
   let stopsSVG = '';
   if (gradientDef && gradientDef.length) {
-    // Process in reverse so offsets are ascending (SVG spec requires it).
-    // (1-t) maps t=1→0% (top/vmax) and t=0→100% (bottom/vmin).
     for (const [t, color] of [...gradientDef].reverse()) {
       const pct = Math.round((1 - t) * 100);
       const hex = '#' + color.getHexString();
       stopsSVG += `<stop offset="${pct}%" stop-color="${hex}"/>`;
     }
   } else {
-    // Fallback: grey gradient
     stopsSVG = '<stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#333"/>';
   }
 
@@ -37,11 +42,40 @@ export function update(state) {
   let ticksSVG = '';
   for (const frac of ticks) {
     const y = barTop + (1 - frac) * barH;
-    const val = vmin + frac * (vmax - vmin);
+    const val = vmin + frac * dv;
     const label = formatLabel(val);
     ticksSVG += `
       <line x1="${barX + barW}" y1="${y}" x2="${barX + barW + 4}" y2="${y}" stroke="#4a5a6a" stroke-width="1"/>
       <text x="${barX + barW + 6}" y="${y + 3.5}" font-size="9" fill="#8a9aaa" font-family="Arial,sans-serif">${label}</text>`;
+  }
+
+  // Zero reference line (if zero is within the color range)
+  let zeroSVG = '';
+  if (vmin < 0 && vmax > 0) {
+    const y0 = physToY(0);
+    zeroSVG = `<line x1="${barX - 3}" y1="${y0}" x2="${barX + barW + 8}" y2="${y0}"
+      stroke="#aaccbb" stroke-width="1" stroke-dasharray="2,2" opacity="0.7"/>
+    <text x="${barX - 5}" y="${y0 + 3.5}" font-size="8" fill="#aaccbb" font-family="Arial,sans-serif"
+      text-anchor="end" opacity="0.9">0</text>`;
+  }
+
+  // LOD zone overlay
+  let lodSVG = '';
+  if (lod > 0) {
+    const yLodTop = Math.max(barTop, physToY(lod));
+    const yLodBot = Math.min(barBot, physToY(-lod));
+    const lodH = yLodBot - yLodTop;
+    if (lodH > 0) {
+      const alpha = lodEnabled ? 0.35 : 0.12;
+      const stroke = lodEnabled ? '#ffffff' : '#888888';
+      lodSVG = `
+        <rect x="${barX}" y="${yLodTop}" width="${barW}" height="${lodH}"
+          fill="white" fill-opacity="${alpha}" rx="1"/>
+        <line x1="${barX}" y1="${yLodTop}" x2="${barX + barW}" y2="${yLodTop}"
+          stroke="${stroke}" stroke-width="${lodEnabled ? 1.5 : 1}" opacity="0.7"/>
+        <line x1="${barX}" y1="${yLodBot}" x2="${barX + barW}" y2="${yLodBot}"
+          stroke="${stroke}" stroke-width="${lodEnabled ? 1.5 : 1}" opacity="0.7"/>`;
+    }
   }
 
   // Field name label, rotated along left edge
@@ -60,8 +94,10 @@ export function update(state) {
     </defs>
     <rect x="${barX}" y="${barTop}" width="${barW}" height="${barH}"
           fill="url(#cb-grad)" rx="2"/>
+    ${lodSVG}
     <rect x="${barX}" y="${barTop}" width="${barW}" height="${barH}"
           fill="none" stroke="#2a3a4a" stroke-width="1" rx="2"/>
+    ${zeroSVG}
     ${ticksSVG}
     ${fieldLabelSVG}
   </svg>`;

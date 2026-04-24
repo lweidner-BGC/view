@@ -38,14 +38,15 @@ export async function initApp() {
   UI.buildSidebar(state, {
     onFieldChange:      applyVisualState,
     onCmapChange:       applyVisualState,
-    onRangeChange:      () => { applyVisualState(); applyFilter(); applyLOD(); },
+    onRangeChange:      () => { applyVisualState(); applyFilter(); applyLOD(); UI.setLODSliderMax(state.vmin, state.vmax); },
     onVisibilityChange: applyVisibility,
     onAutoRange:        autoRange,
     onPointSize:        applyPointSize,
     onFilterChange:     applyFilter,
     onNaNChange:        applyFilter,
-    onLODChange:        applyLOD,
+    onLODChange:        () => { applyLOD(); Colorbar.update(state); },
   });
+  UI.setLODSliderMax(state.vmin, state.vmax);
   UI.updateToggleButtons(state.active);
 
   if (state.src)  await loadCloud(1, state.src);

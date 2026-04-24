@@ -289,8 +289,10 @@ export function setFilterSlider(fmin, fmax) {
 export function setLODSliderMax(vmin, vmax) {
   const sliderEl = document.getElementById('lod-slider');
   if (!sliderEl) return;
-  const halfRange = Math.abs(vmax - vmin) / 2;
-  sliderEl.max = halfRange.toFixed(4);
+  // Max = largest distance from zero that the color range covers
+  const maxAbs = Math.max(Math.abs(vmin), Math.abs(vmax));
+  sliderEl.max = maxAbs.toFixed(4);
+  sliderEl.step = (maxAbs / 500).toFixed(5);
 }
 
 export function setRangeInputs(vmin, vmax) {
