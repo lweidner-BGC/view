@@ -63360,14 +63360,20 @@ void main() {
 							range = [0, 1];
 						}
 
-						let initialRange = attExtra.initialRange;
-						let initialRangeSize = initialRange[1] - initialRange[0];
-
 						let globalRange = range;
 						let globalRangeSize = globalRange[1] - globalRange[0];
+						const g0 = globalRange[0];
 
-						let scale = initialRangeSize / globalRangeSize;
-						let offset = -(globalRange[0] - initialRange[0]) / initialRangeSize;
+						// Buffer stores: bufValue = (rawValue - bOffset) * bScale
+						// float attrs: bScale=1, bOffset=0 (raw value stored directly)
+						// double attrs: bScale=1/R, bOffset=amin (normalized to [0,1])
+						// Shader wants: w = (bufValue + offset) * scale = (rawValue - g0) / G
+						const bPotree = bufferAttribute?.potree;
+						const bScale = bPotree?.scale ?? 1;
+						const bOffset = bPotree?.offset ?? 0;
+
+						let scale = 1.0 / (bScale * globalRangeSize);
+						let offset = bScale * (bOffset - g0);
 
 						scale = Number.isNaN(scale) ? 1 : scale;
 						offset = Number.isNaN(offset) ? 0 : offset;
