@@ -57491,6 +57491,16 @@
 			[0.04, new Color(1, 1, 1)],
 			[1.00, new Color(1, 1, 1)]
 		],
+		// Diverging blue→cyan / gray / orange→red, designed for M3C2-style change
+		// detection where vmin=-1 and vmax=1 places zero at t=0.5 in the gray zone.
+		BLUE_RED: [
+			[0.000, new Color(0/255,   0/255, 255/255)],
+			[0.400, new Color(85/255, 255/255, 255/255)],
+			[0.405, new Color(203/255, 203/255, 203/255)],
+			[0.750, new Color(203/255, 203/255, 203/255)],
+			[0.755, new Color(255/255, 170/255,   0/255)],
+			[1.000, new Color(255/255,   0/255,   0/255)],
+		],
 	};
 
 	let Shaders = {};

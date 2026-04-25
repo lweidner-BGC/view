@@ -11,6 +11,7 @@ const DEFAULT_FIELDS = [
 ];
 
 const COLORMAPS = [
+  { value: 'BLUE_RED',     label: 'Blue–Red (diverging)' },
   { value: 'SPECTRAL',     label: 'Spectral' },
   { value: 'VIRIDIS',      label: 'Viridis' },
   { value: 'PLASMA',       label: 'Plasma' },
