@@ -57491,15 +57491,14 @@
 			[0.04, new Color(1, 1, 1)],
 			[1.00, new Color(1, 1, 1)]
 		],
-		// Diverging blue→cyan / gray / orange→red, designed for M3C2-style change
-		// detection where vmin=-1 and vmax=1 places zero at t=0.5 in the gray zone.
+		// Diverging blue→white→red. App.js regenerates this dynamically so that
+		// white is always anchored at M3C2=0 for the current vmin/vmax.
 		BLUE_RED: [
-			[0.000, new Color(0/255,   0/255, 255/255)],
-			[0.400, new Color(85/255, 255/255, 255/255)],
-			[0.405, new Color(203/255, 203/255, 203/255)],
-			[0.750, new Color(203/255, 203/255, 203/255)],
-			[0.755, new Color(255/255, 170/255,   0/255)],
-			[1.000, new Color(255/255,   0/255,   0/255)],
+			[0.00, new Color( 33/255, 102/255, 172/255)],
+			[0.25, new Color(146/255, 197/255, 222/255)],
+			[0.50, new Color(255/255, 255/255, 255/255)],
+			[0.75, new Color(244/255, 165/255, 130/255)],
+			[1.00, new Color(178/255,  24/255,  43/255)],
 		],
 	};
 

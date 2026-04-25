@@ -131,13 +131,40 @@ function applyVisualState() {
   Colorbar.update(state);
 }
 
+// Build a diverging blue→white→red gradient with white anchored at physical zero.
+// Stop positions are computed from the current vmin/vmax so zero is always white.
+function buildZeroAnchoredGradient(vmin, vmax) {
+  const dv = vmax - vmin || 1;
+  const t0 = Math.max(0.001, Math.min(0.999, (0 - vmin) / dv));
+
+  // ColorBrewer RdBu-derived: pure blue/red hues, no greens.
+  const c = (r, g, b) => {
+    const hex = (r * 65536 + g * 256 + b).toString(16).padStart(6, '0');
+    return { getHexString: () => hex };
+  };
+
+  return [
+    [0,                        c( 33, 102, 172)],  // deep blue
+    [t0 * 0.5,                 c(146, 197, 222)],  // light blue
+    [t0,                       c(255, 255, 255)],  // white at zero
+    [t0 + (1 - t0) * 0.5,     c(244, 165, 130)],  // light red
+    [1,                        c(178,  24,  43)],  // deep red
+  ];
+}
+
 function applyField(pc) {
   const mat = pc.material;
   mat.activeAttributeName = state.field;
 
-  const gradient = (Potree.Gradients && Potree.Gradients[state.cmap])
-    ? Potree.Gradients[state.cmap]
-    : Potree.Gradients.SPECTRAL;
+  let gradient;
+  if (state.cmap === 'BLUE_RED') {
+    gradient = buildZeroAnchoredGradient(state.vmin, state.vmax);
+    Potree.Gradients.BLUE_RED = gradient;  // keep colorbar in sync
+  } else {
+    gradient = (Potree.Gradients && Potree.Gradients[state.cmap])
+      ? Potree.Gradients[state.cmap]
+      : Potree.Gradients.SPECTRAL;
+  }
   mat.gradient = gradient;
 
   // Potree's renderer reads material.getRange(name) each frame and computes
