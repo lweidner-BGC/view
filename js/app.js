@@ -285,8 +285,18 @@ function startProfile() {
 }
 
 function startClipBox() {
-  state.viewer.clipTask = Potree.ClipTask.SHOW_INSIDE;
   state.viewer.volumeTool.startInsertion({ clip: true });
+
+  // Defer SHOW_INSIDE until after the first placement click so raycasting
+  // works before the box has a valid position (default box is at origin).
+  const renderArea = document.getElementById('potree_render_area');
+  const onFirstPlace = () => {
+    renderArea.removeEventListener('mouseup', onFirstPlace);
+    requestAnimationFrame(() => {
+      state.viewer.clipTask = Potree.ClipTask.SHOW_INSIDE;
+    });
+  };
+  renderArea.addEventListener('mouseup', onFirstPlace);
 }
 
 function toggleInspect() {
@@ -328,13 +338,14 @@ function initTools() {
   });
 }
 
-function showInspectResult(point) {
+function showInspectResult(result) {
   const el = document.getElementById('inspect-result');
   if (!el) return;
 
-  const pos = point.position;
-  const raw = point[state.field];
-  const scalar = Array.isArray(raw) ? raw[0] : (raw instanceof Float32Array ? raw[0] : raw);
+  const pos = result.location;           // THREE.Vector3 world position
+  const innerPoint = result.point || {}; // attribute dict from PointCloudOctree.pick()
+  const raw = innerPoint[state.field];
+  const scalar = (raw instanceof Float32Array || Array.isArray(raw)) ? raw[0] : raw;
   const f4 = (n) => (typeof n === 'number' ? n.toFixed(4) : '—');
 
   el.innerHTML =
