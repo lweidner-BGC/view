@@ -28,6 +28,7 @@ const state = {
   viewer: null,
   attributes: [],
   _hasURLRange: false,  // true if vmin/vmax came from URL params
+  activeTool: null,     // 'inspect' | null
 };
 
 // ── Entry point ────────────────────────────────────────────────────────────
@@ -45,6 +46,11 @@ export async function initApp() {
     onFilterChange:     applyFilter,
     onNaNChange:        applyFilter,
     onLODChange:        () => { applyLOD(); Colorbar.update(state); },
+    onMeasure:          startMeasure,
+    onProfile:          startProfile,
+    onClipBox:          startClipBox,
+    onInspect:          toggleInspect,
+    onClearTools:       clearTools,
   });
   UI.setLODSliderMax(state.vmin, state.vmax);
   UI.updateToggleButtons(state.active);
@@ -59,6 +65,7 @@ export async function initApp() {
   applyLOD();
 
   document.getElementById('btn-share').addEventListener('click', shareURL);
+  initTools();
   startStatusLoop();
 
   // Resize colorbar when window resizes
@@ -249,6 +256,80 @@ function autoRange() {
   applyVisualState();
   applyFilter();
   applyLOD();
+}
+
+// ── Tools ──────────────────────────────────────────────────────────────────
+function startMeasure() {
+  state.viewer.measuringTool.startInsertion({
+    showDistances: true,
+    closed: false,
+    name: 'Distance',
+  });
+}
+
+function startProfile() {
+  state.viewer.profileTool.startInsertion();
+}
+
+function startClipBox() {
+  state.viewer.volumeTool.startInsertion({ clip: true });
+}
+
+function toggleInspect() {
+  state.activeTool = state.activeTool === 'inspect' ? null : 'inspect';
+  const on = state.activeTool === 'inspect';
+  UI.setToolActive('inspect', on);
+  document.getElementById('potree_render_area').classList.toggle('inspect-cursor', on);
+  if (!on) document.getElementById('inspect-result').style.display = 'none';
+}
+
+function clearTools() {
+  const scene = state.viewer.scene;
+  [...scene.measurements].forEach(m => scene.removeMeasurement(m));
+  [...scene.profiles].forEach(p => scene.removeProfile(p));
+  [...scene.volumes].forEach(v => scene.removeVolume(v));
+}
+
+function initTools() {
+  const renderArea = document.getElementById('potree_render_area');
+  let mouseDownPos = null;
+
+  renderArea.addEventListener('mousedown', (e) => {
+    mouseDownPos = { x: e.clientX, y: e.clientY };
+  });
+
+  renderArea.addEventListener('mouseup', (e) => {
+    if (state.activeTool !== 'inspect' || !mouseDownPos) return;
+    const dx = e.clientX - mouseDownPos.x;
+    const dy = e.clientY - mouseDownPos.y;
+    if (dx * dx + dy * dy > 25) return; // ignore drags
+
+    const canvas = state.viewer.renderer.domElement;
+    const rect   = canvas.getBoundingClientRect();
+    const mouse  = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    const camera = state.viewer.scene.getActiveCamera();
+    const clouds = Object.values(state.clouds).filter(Boolean);
+
+    const point = Potree.Utils.getMousePointCloudIntersection(mouse, camera, state.viewer, clouds);
+    if (point) showInspectResult(point);
+  });
+}
+
+function showInspectResult(point) {
+  const el = document.getElementById('inspect-result');
+  if (!el) return;
+
+  const pos = point.position;
+  const raw = point[state.field];
+  const scalar = Array.isArray(raw) ? raw[0] : (raw instanceof Float32Array ? raw[0] : raw);
+  const f4 = (n) => (typeof n === 'number' ? n.toFixed(4) : '—');
+
+  el.innerHTML =
+    `<div class="inspect-row"><span>X</span><span>${f4(pos?.x)}</span></div>` +
+    `<div class="inspect-row"><span>Y</span><span>${f4(pos?.y)}</span></div>` +
+    `<div class="inspect-row"><span>Z</span><span>${f4(pos?.z)}</span></div>` +
+    `<div class="inspect-row"><span>${state.field}</span><span>${f4(scalar)}</span></div>`;
+  el.style.display = 'block';
 }
 
 // ── Camera ─────────────────────────────────────────────────────────────────

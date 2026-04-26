@@ -112,6 +112,19 @@ export function buildSidebar(state, callbacks) {
       <input type="range" id="budget-slider" min="500000" max="15000000" step="500000" style="width:100%">
       <div class="budget-display" id="budget-display">5.0M points</div>
     </div>
+
+    <!-- TOOLS -->
+    <div class="sidebar-section">
+      <div class="section-label">Tools</div>
+      <div class="tool-btn-grid">
+        <button class="tool-btn" id="tool-measure" title="Draw distance measurement — double-click to finish">Measure</button>
+        <button class="tool-btn" id="tool-profile" title="Draw cross-section profile — double-click to finish">Profile</button>
+        <button class="tool-btn" id="tool-clip"    title="Place a clip box to isolate a region">Clip Box</button>
+        <button class="tool-btn" id="tool-inspect" title="Click a point to read its scalar value">Inspect</button>
+      </div>
+      <button class="btn-small" id="btn-clear-tools">Clear all</button>
+      <div id="inspect-result" style="display:none"></div>
+    </div>
   `;
 
   // Populate dropdowns
@@ -235,6 +248,13 @@ export function buildSidebar(state, callbacks) {
     document.getElementById('budget-display').textContent = `${(n / 1e6).toFixed(1)}M points`;
     if (state.viewer) state.viewer.setPointBudget(n);
   });
+
+  // Tools
+  document.getElementById('tool-measure').addEventListener('click', () => callbacks.onMeasure?.());
+  document.getElementById('tool-profile').addEventListener('click', () => callbacks.onProfile?.());
+  document.getElementById('tool-clip').addEventListener('click',    () => callbacks.onClipBox?.());
+  document.getElementById('tool-inspect').addEventListener('click', () => callbacks.onInspect?.());
+  document.getElementById('btn-clear-tools').addEventListener('click', () => callbacks.onClearTools?.());
 }
 
 export function updateAttributeList(attributes) {
@@ -372,6 +392,11 @@ function initFilterSlider(state, callbacks) {
       callbacks.onFilterChange();
     },
   });
+}
+
+export function setToolActive(toolId, active) {
+  const btn = document.getElementById(`tool-${toolId}`);
+  if (btn) btn.classList.toggle('active', active);
 }
 
 export function updateToggleButtons(active) {

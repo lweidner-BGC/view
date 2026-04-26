@@ -332,5 +332,48 @@ select option { background: #1a1a2e; }
 }
 #app-status .val { color: #6a9a8a; }
 
+/* ── Tools section ── */
+.tool-btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+.tool-btn {
+  padding: 6px 4px;
+  background: #1e1e38;
+  border: 1px solid #2a2a4a;
+  color: #8a9aaa;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.15s;
+  text-align: center;
+}
+.tool-btn:hover { background: #252545; color: #ccc; }
+.tool-btn.active {
+  background: #1a4a5e;
+  border-color: #2a7a94;
+  color: #c8eaf5;
+}
+#inspect-result {
+  margin-top: 8px;
+  background: #0f1f2f;
+  border: 1px solid #1a3a4a;
+  border-radius: 4px;
+  padding: 7px 8px;
+  font-size: 10px;
+  font-family: monospace;
+  color: #8abacc;
+}
+.inspect-row {
+  display: flex;
+  justify-content: space-between;
+  line-height: 1.8;
+}
+.inspect-row span:first-child { color: #4a6a7a; }
+#potree_render_area.inspect-cursor { cursor: crosshair; }
+
 /* Potree sidebar suppression */
 #potree_sidebar_container { display: none !important; }
