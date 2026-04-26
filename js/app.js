@@ -402,16 +402,10 @@ function flyToProfile(a, b) {
   state.viewer.scene.addVolume(box);
   state.viewer.clipTask = Potree.ClipTask.SHOW_INSIDE;
 
-  // Visual profile line (cleared by "Clear all")
+  // Compute sidebar stats without adding markers to the scene
   const m = new Potree.Measure();
-  m.name = 'Profile';
-  m.showDistances = false;
-  m.showArea = false;
-  m.closed = false;
   m.addMarker(a);
   m.addMarker(b);
-  state.viewer.scene.addMeasurement(m);
-
   showMeasureStats(m);
 }
 
