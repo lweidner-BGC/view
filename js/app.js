@@ -27,8 +27,10 @@ const state = {
   clouds: { 1: null, 2: null },
   viewer: null,
   attributes: [],
-  _hasURLRange: false,  // true if vmin/vmax came from URL params
-  activeTool: null,     // 'inspect' | null
+  _hasURLRange: false,   // true if vmin/vmax came from URL params
+  activeTool: null,      // 'inspect' | 'profile' | null
+  _activeMeasure: null,  // Potree.Measure currently being drawn
+  _profileCleanup: null, // cancel fn while profile is in two-click mode
 };
 
 // ── Entry point ────────────────────────────────────────────────────────────
@@ -264,24 +266,104 @@ function autoRange() {
 
 // ── Tools ──────────────────────────────────────────────────────────────────
 function startMeasure() {
-  state.viewer.measuringTool.startInsertion({
+  const m = state.viewer.measuringTool.startInsertion({
     showDistances: true,
     closed: false,
     name: 'Distance',
   });
+  state._activeMeasure = m;
+  m.addEventListener('marker_moved', () => {
+    if (m.points.length >= 2) showMeasureStats(m);
+  });
 }
 
 function startProfile() {
-  const profile = state.viewer.profileTool.startInsertion();
-  const tryShow = () => {
-    if (state.viewer.profileWindow && state.viewer.profileWindowController) {
-      state.viewer.profileWindow.show();
-      state.viewer.profileWindowController.setProfile(profile);
+  // Toggle off if already active
+  if (state.activeTool === 'profile') {
+    state._profileCleanup?.();
+    return;
+  }
+
+  state.activeTool = 'profile';
+  UI.setToolActive('profile', true);
+
+  const el = document.getElementById('inspect-result');
+  el.style.display = 'block';
+  el.innerHTML = '<div class="inspect-row"><span style="color:#8abacc">Click first point</span></div>';
+
+  let firstPoint = null;
+  const renderArea = document.getElementById('potree_render_area');
+  let mdPos = null;
+
+  const onDown = e => { mdPos = { x: e.clientX, y: e.clientY }; };
+  const onUp = e => {
+    if (!mdPos) return;
+    const ddx = e.clientX - mdPos.x, ddy = e.clientY - mdPos.y;
+    if (ddx * ddx + ddy * ddy > 25) return; // ignore drags
+
+    const result = Potree.Utils.getMousePointCloudIntersection(
+      state.viewer.inputHandler.mouse,
+      state.viewer.scene.getActiveCamera(),
+      state.viewer,
+      state.viewer.scene.pointclouds);
+    if (!result) return;
+
+    if (!firstPoint) {
+      firstPoint = result.location.clone();
+      el.innerHTML = '<div class="inspect-row"><span style="color:#8abacc">Click second point</span></div>';
     } else {
-      setTimeout(tryShow, 200);
+      cleanup();
+      flyToProfile(firstPoint, result.location);
     }
   };
-  tryShow();
+
+  const cleanup = () => {
+    renderArea.removeEventListener('mousedown', onDown);
+    renderArea.removeEventListener('mouseup', onUp);
+    state.activeTool = null;
+    state._profileCleanup = null;
+    UI.setToolActive('profile', false);
+    el.style.display = 'none';
+  };
+
+  state._profileCleanup = cleanup;
+  renderArea.addEventListener('mousedown', onDown);
+  renderArea.addEventListener('mouseup', onUp);
+}
+
+function flyToProfile(a, b) {
+  const view = state.viewer.scene.view;
+
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len2d = Math.sqrt(dx * dx + dy * dy) || 1;
+
+  // Unit perpendicular (CCW 90° from AB in XY plane)
+  const px = -dy / len2d;
+  const py =  dx / len2d;
+
+  const mx = (a.x + b.x) / 2;
+  const my = (a.y + b.y) / 2;
+  const mz = (a.z + b.z) / 2;
+
+  // Camera 2× the horizontal distance, on the perpendicular side
+  const dist = len2d * 2.0;
+  view.position.set(mx + px * dist, my + py * dist, mz);
+  view.lookAt(mx, my, mz);  // sets direction + radius
+  view.pitch = -0.15;       // slight downward tilt
+
+  // Drop a visual line in the scene (cleared by "Clear all")
+  const m = new Potree.Measure();
+  m.name = 'Profile';
+  m.showDistances = false;
+  m.showArea = false;
+  m.closed = false;
+  m.addMarker(a);
+  m.addMarker(b);
+  state.viewer.scene.addMeasurement(m);
+
+  // Show distance breakdown in sidebar
+  showMeasureStats(m);
 }
 
 function startClipBox() {
@@ -308,11 +390,16 @@ function toggleInspect() {
 }
 
 function clearTools() {
+  state._profileCleanup?.();        // cancel in-progress profile pick
+  state._activeMeasure = null;
+
   const scene = state.viewer.scene;
   [...scene.measurements].forEach(m => scene.removeMeasurement(m));
   [...scene.profiles].forEach(p => scene.removeProfile(p));
   [...scene.volumes].forEach(v => scene.removeVolume(v));
   state.viewer.clipTask = Potree.ClipTask.HIGHLIGHT;
+
+  document.getElementById('inspect-result').style.display = 'none';
 }
 
 function initTools() {
@@ -336,6 +423,66 @@ function initTools() {
     const point = Potree.Utils.getMousePointCloudIntersection(mouse, camera, state.viewer, clouds);
     if (point) showInspectResult(point);
   });
+
+  // Poll for new measurement points (so stats update as user places markers)
+  let _lastMeasurePtCount = 0;
+  (function measurePoll() {
+    const m = state._activeMeasure;
+    if (m) {
+      const n = m.points.length;
+      if (n !== _lastMeasurePtCount) {
+        _lastMeasurePtCount = n;
+        if (n >= 2) showMeasureStats(m);
+      }
+    } else {
+      _lastMeasurePtCount = 0;
+    }
+    requestAnimationFrame(measurePoll);
+  })();
+}
+
+function showMeasureStats(m) {
+  const el = document.getElementById('inspect-result');
+  if (!el) return;
+
+  const pts = m.points.map(p => p.position);
+  if (pts.length < 2) return;
+
+  const f = n => n.toFixed(3);
+  let rows = '';
+  let total3d = 0;
+
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1];
+    const ddx = b.x - a.x, ddy = b.y - a.y, ddz = b.z - a.z;
+    const dist3d = Math.sqrt(ddx*ddx + ddy*ddy + ddz*ddz);
+    const distXY = Math.sqrt(ddx*ddx + ddy*ddy);
+    total3d += dist3d;
+
+    if (pts.length > 2) {
+      rows += `<div class="inspect-row"><span>Seg ${i+1} dist</span><span>${f(dist3d)}</span></div>`;
+      rows += `<div class="inspect-row"><span>Seg ${i+1} ΔXY</span><span>${f(distXY)}</span></div>`;
+      rows += `<div class="inspect-row"><span>Seg ${i+1} ΔZ</span><span>${f(ddz)}</span></div>`;
+    }
+  }
+
+  const p0 = pts[0], pN = pts[pts.length - 1];
+  const edx = pN.x - p0.x, edy = pN.y - p0.y, edz = pN.z - p0.z;
+  const endXY = Math.sqrt(edx*edx + edy*edy);
+
+  if (pts.length === 2) {
+    const ddx = edx, ddy = edy, ddz = edz;
+    rows += `<div class="inspect-row"><span>3D dist</span><span>${f(total3d)}</span></div>`;
+    rows += `<div class="inspect-row"><span>ΔXY</span><span>${f(endXY)}</span></div>`;
+    rows += `<div class="inspect-row"><span>ΔZ</span><span>${f(ddz)}</span></div>`;
+  } else {
+    rows += `<div class="inspect-row" style="margin-top:4px"><span>Total 3D</span><span>${f(total3d)}</span></div>`;
+    rows += `<div class="inspect-row"><span>End ΔXY</span><span>${f(endXY)}</span></div>`;
+    rows += `<div class="inspect-row"><span>End ΔZ</span><span>${f(edz)}</span></div>`;
+  }
+
+  el.innerHTML = rows;
+  el.style.display = 'block';
 }
 
 function showInspectResult(result) {
