@@ -82,6 +82,10 @@ async function initViewer() {
   viewer.setPointBudget(5_000_000);
   viewer.setBackground('black');
   viewer.loadSettingsFromURL = () => {}; // prevent Potree from hijacking URL params
+  // Override unit labels — data is not necessarily in meters
+  const unitless = { code: 'units', unitspermeter: 1.0 };
+  viewer.lengthUnit = unitless;
+  viewer.lengthUnitDisplay = unitless;
   state.viewer = viewer;
 }
 
@@ -268,10 +272,20 @@ function startMeasure() {
 }
 
 function startProfile() {
-  state.viewer.profileTool.startInsertion();
+  const profile = state.viewer.profileTool.startInsertion();
+  const tryShow = () => {
+    if (state.viewer.profileWindow && state.viewer.profileWindowController) {
+      state.viewer.profileWindow.show();
+      state.viewer.profileWindowController.setProfile(profile);
+    } else {
+      setTimeout(tryShow, 200);
+    }
+  };
+  tryShow();
 }
 
 function startClipBox() {
+  state.viewer.clipTask = Potree.ClipTask.SHOW_INSIDE;
   state.viewer.volumeTool.startInsertion({ clip: true });
 }
 
@@ -288,6 +302,7 @@ function clearTools() {
   [...scene.measurements].forEach(m => scene.removeMeasurement(m));
   [...scene.profiles].forEach(p => scene.removeProfile(p));
   [...scene.volumes].forEach(v => scene.removeVolume(v));
+  state.viewer.clipTask = Potree.ClipTask.HIGHLIGHT;
 }
 
 function initTools() {
@@ -304,11 +319,9 @@ function initTools() {
     const dy = e.clientY - mouseDownPos.y;
     if (dx * dx + dy * dy > 25) return; // ignore drags
 
-    const canvas = state.viewer.renderer.domElement;
-    const rect   = canvas.getBoundingClientRect();
-    const mouse  = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     const camera = state.viewer.scene.getActiveCamera();
-    const clouds = Object.values(state.clouds).filter(Boolean);
+    const mouse  = state.viewer.inputHandler.mouse;
+    const clouds = state.viewer.scene.pointclouds;
 
     const point = Potree.Utils.getMousePointCloudIntersection(mouse, camera, state.viewer, clouds);
     if (point) showInspectResult(point);

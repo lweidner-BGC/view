@@ -118,7 +118,7 @@ export function buildSidebar(state, callbacks) {
       <div class="section-label">Tools</div>
       <div class="tool-btn-grid">
         <button class="tool-btn" id="tool-measure" title="Draw distance measurement — double-click to finish">Measure</button>
-        <button class="tool-btn" id="tool-profile" title="Draw cross-section profile — double-click to finish">Profile</button>
+        <button class="tool-btn" id="tool-profile" title="Draw cross-section profile — right-click to finish">Profile</button>
         <button class="tool-btn" id="tool-clip"    title="Place a clip box to isolate a region">Clip Box</button>
         <button class="tool-btn" id="tool-inspect" title="Click a point to read its scalar value">Inspect</button>
       </div>
