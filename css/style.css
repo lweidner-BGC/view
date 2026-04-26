@@ -373,7 +373,8 @@ select option { background: #1a1a2e; }
   line-height: 1.8;
 }
 .inspect-row span:first-child { color: #4a6a7a; }
-#potree_render_area.inspect-cursor { cursor: crosshair; }
+#potree_render_area.inspect-cursor,
+#potree_render_area.profile-cursor { cursor: crosshair; }
 
 /* Potree sidebar suppression */
 #potree_sidebar_container { display: none !important; }

@@ -29,6 +29,7 @@ const state = {
   attributes: [],
   _hasURLRange: false,   // true if vmin/vmax came from URL params
   activeTool: null,      // 'inspect' | 'profile' | null
+  profileWidth: 2.0,     // slice thickness for profile clip box (data units)
   _activeMeasure: null,  // Potree.Measure currently being drawn
   _profileCleanup: null, // cancel fn while profile is in two-click mode
 };
@@ -278,7 +279,6 @@ function startMeasure() {
 }
 
 function startProfile() {
-  // Toggle off if already active
   if (state.activeTool === 'profile') {
     state._profileCleanup?.();
     return;
@@ -287,19 +287,39 @@ function startProfile() {
   state.activeTool = 'profile';
   UI.setToolActive('profile', true);
 
+  const renderArea = document.getElementById('potree_render_area');
+  renderArea.classList.add('profile-cursor');
+
   const el = document.getElementById('inspect-result');
   el.style.display = 'block';
   el.innerHTML = '<div class="inspect-row"><span style="color:#8abacc">Click first point</span></div>';
 
   let firstPoint = null;
-  const renderArea = document.getElementById('potree_render_area');
+  let previewMeasure = null;
   let mdPos = null;
+  let moveQueued = false;
 
   const onDown = e => { mdPos = { x: e.clientX, y: e.clientY }; };
+
+  const onMove = () => {
+    if (!firstPoint || moveQueued) return;
+    moveQueued = true;
+    requestAnimationFrame(() => {
+      moveQueued = false;
+      if (!previewMeasure) return;
+      const result = Potree.Utils.getMousePointCloudIntersection(
+        state.viewer.inputHandler.mouse,
+        state.viewer.scene.getActiveCamera(),
+        state.viewer,
+        state.viewer.scene.pointclouds);
+      if (result) previewMeasure.setPosition(1, result.location);
+    });
+  };
+
   const onUp = e => {
     if (!mdPos) return;
     const ddx = e.clientX - mdPos.x, ddy = e.clientY - mdPos.y;
-    if (ddx * ddx + ddy * ddy > 25) return; // ignore drags
+    if (ddx * ddx + ddy * ddy > 25) return;
 
     const result = Potree.Utils.getMousePointCloudIntersection(
       state.viewer.inputHandler.mouse,
@@ -311,15 +331,35 @@ function startProfile() {
     if (!firstPoint) {
       firstPoint = result.location.clone();
       el.innerHTML = '<div class="inspect-row"><span style="color:#8abacc">Click second point</span></div>';
+
+      previewMeasure = new Potree.Measure();
+      previewMeasure.name = 'profile-preview';
+      previewMeasure.showDistances = false;
+      previewMeasure.showArea = false;
+      previewMeasure.closed = false;
+      previewMeasure.addMarker(firstPoint);
+      previewMeasure.addMarker(firstPoint.clone()); // updated live by onMove
+      state.viewer.scene.addMeasurement(previewMeasure);
     } else {
+      const secondPoint = result.location;
+      if (previewMeasure) {
+        state.viewer.scene.removeMeasurement(previewMeasure);
+        previewMeasure = null;
+      }
       cleanup();
-      flyToProfile(firstPoint, result.location);
+      flyToProfile(firstPoint, secondPoint);
     }
   };
 
   const cleanup = () => {
     renderArea.removeEventListener('mousedown', onDown);
+    renderArea.removeEventListener('mousemove', onMove);
     renderArea.removeEventListener('mouseup', onUp);
+    renderArea.classList.remove('profile-cursor');
+    if (previewMeasure) {
+      state.viewer.scene.removeMeasurement(previewMeasure);
+      previewMeasure = null;
+    }
     state.activeTool = null;
     state._profileCleanup = null;
     UI.setToolActive('profile', false);
@@ -328,6 +368,7 @@ function startProfile() {
 
   state._profileCleanup = cleanup;
   renderArea.addEventListener('mousedown', onDown);
+  renderArea.addEventListener('mousemove', onMove);
   renderArea.addEventListener('mouseup', onUp);
 }
 
@@ -338,7 +379,7 @@ function flyToProfile(a, b) {
   const dy = b.y - a.y;
   const len2d = Math.sqrt(dx * dx + dy * dy) || 1;
 
-  // Unit perpendicular (CCW 90° from AB in XY plane)
+  // CCW perpendicular to AB in XY plane
   const px = -dy / len2d;
   const py =  dx / len2d;
 
@@ -349,10 +390,19 @@ function flyToProfile(a, b) {
   // Camera 2× the horizontal distance, on the perpendicular side
   const dist = len2d * 2.0;
   view.position.set(mx + px * dist, my + py * dist, mz);
-  view.lookAt(mx, my, mz);  // sets direction + radius
-  view.pitch = -0.15;       // slight downward tilt
+  view.lookAt(mx, my, mz);
+  view.pitch = -0.15;
 
-  // Drop a visual line in the scene (cleared by "Clear all")
+  // Oriented clip box: long axis along AB, narrow across (slice width), tall in Z
+  const box = new Potree.BoxVolume();
+  box.clip = true;
+  box.position.set(mx, my, mz);
+  box.rotation.z = Math.atan2(dy, dx); // align local X with profile direction
+  box.scale.set(len2d * 1.1, state.profileWidth, 500);
+  state.viewer.scene.addVolume(box);
+  state.viewer.clipTask = Potree.ClipTask.SHOW_INSIDE;
+
+  // Visual profile line (cleared by "Clear all")
   const m = new Potree.Measure();
   m.name = 'Profile';
   m.showDistances = false;
@@ -362,7 +412,6 @@ function flyToProfile(a, b) {
   m.addMarker(b);
   state.viewer.scene.addMeasurement(m);
 
-  // Show distance breakdown in sidebar
   showMeasureStats(m);
 }
 

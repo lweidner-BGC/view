@@ -118,9 +118,13 @@ export function buildSidebar(state, callbacks) {
       <div class="section-label">Tools</div>
       <div class="tool-btn-grid">
         <button class="tool-btn" id="tool-measure" title="Draw distance measurement — double-click to finish">Measure</button>
-        <button class="tool-btn" id="tool-profile" title="Click two points — view flies to show the profile from the side">Profile</button>
+        <button class="tool-btn" id="tool-profile" title="Click two points — clips to a narrow slice and flies to a side view">Profile</button>
         <button class="tool-btn" id="tool-clip"    title="Place a clip box to isolate a region">Clip Box</button>
         <button class="tool-btn" id="tool-inspect" title="Click a point to read its scalar value">Inspect</button>
+      </div>
+      <div class="range-row" style="margin-top:6px;margin-bottom:2px">
+        <label style="width:46px;font-size:10px;color:#5a6a7a;flex-shrink:0">Slice W</label>
+        <input type="number" id="profile-width" class="range-num-input" value="${fmt(state.profileWidth)}" min="0.1" step="0.5" style="width:72px">
       </div>
       <button class="btn-small" id="btn-clear-tools">Clear all</button>
       <div id="inspect-result" style="display:none"></div>
@@ -255,6 +259,11 @@ export function buildSidebar(state, callbacks) {
   document.getElementById('tool-clip').addEventListener('click',    () => callbacks.onClipBox?.());
   document.getElementById('tool-inspect').addEventListener('click', () => callbacks.onInspect?.());
   document.getElementById('btn-clear-tools').addEventListener('click', () => callbacks.onClearTools?.());
+
+  document.getElementById('profile-width').addEventListener('change', (e) => {
+    const v = parseFloat(e.target.value);
+    if (!isNaN(v) && v > 0) state.profileWidth = v;
+  });
 }
 
 export function updateAttributeList(attributes) {
